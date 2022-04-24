@@ -11,10 +11,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace RESTfulAPI.Controllers
+namespace RESTfulAPI.Controllers.v2
 {
     [Authorize]
-    [Route("api/[controller]")]
+    [Route("api/v2/[controller]")]
     [ApiController]
     public class CountryController : ControllerBase
     {
@@ -27,7 +27,7 @@ namespace RESTfulAPI.Controllers
         [HttpGet]
         public async Task<IActionResult> Get()
         {
-            return Ok(new ResponseModel { Data=await _context.Countries.ToListAsync()});
+            return Ok(new ResponseModel { Data = await _context.Countries.ToListAsync() });
         }
     }
 }

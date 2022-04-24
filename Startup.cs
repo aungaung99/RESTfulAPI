@@ -5,21 +5,28 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Identity.Web;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 using RESTfulAPI.Data;
 using RESTfulAPI.Entities;
+using RESTfulAPI.Utitlies;
+
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -39,10 +46,63 @@ namespace RESTfulAPI
         {
             services.AddRouting(options => options.LowercaseUrls = true);
 
-            services.AddControllers();
+            services.AddControllers(options=> options.Conventions.Add(new GroupingByNamespaceConvention()));
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "RESTfulAPI", Version = "v1" });
+                string titleBase = "RESTful API";
+                string description = "This is a Web API for Movies operations";
+                Uri TermsOfService = new("http://quickfood.com/termsandprivacypolicy");
+                OpenApiContact Contact = new()
+                {
+                    Name = "ES Admin",
+                    Email = "aungaung20.ab@gmail.com",
+                    Url = new Uri("https://facebook.com/aungnaingooSE"),
+                };
+
+                c.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Version = "v1",
+                    Title = titleBase + " v1",
+                    Description = description,
+                    TermsOfService = TermsOfService,
+                    Contact = Contact
+                });
+
+                c.SwaggerDoc("v2", new OpenApiInfo
+                {
+                    Version = "v2",
+                    Title = titleBase + " v2",
+                    Description = description,
+                    TermsOfService = TermsOfService,
+                    Contact = Contact
+                });
+
+
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = JwtBearerDefaults.AuthenticationScheme,
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "Enter 'Bearer' [space] and then your valid token in the text input below.\r\n\r\nExample: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
+                });
+
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                          new OpenApiSecurityScheme
+                            {
+                                Reference = new OpenApiReference
+                                {
+                                    Type = ReferenceType.SecurityScheme,
+                                    Id =  JwtBearerDefaults.AuthenticationScheme
+                                }
+                            },
+                            Array.Empty<string>()
+
+                    }
+                });
             });
 
             // Project DbContext -- SQL Server Connection
@@ -87,7 +147,26 @@ namespace RESTfulAPI
             {
                 app.UseDeveloperExceptionPage();
                 app.UseSwagger();
-                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "RESTfulAPI v1"));
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "RESTful API v1");
+                    c.SwaggerEndpoint("/swagger/v2/swagger.json", "RESTful API v2");
+                });
+            }
+            else
+            {
+                app.UseExceptionHandler("/Error");
+                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+                app.UseHsts();
+
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "RESTful API v1");
+                    c.SwaggerEndpoint("/swagger/v2/swagger.json", "RESTful API v2");
+                    c.DocumentTitle = "RESTful API";
+                    c.RoutePrefix = string.Empty;
+                });
             }
 
             app.UseHttpsRedirection();
